@@ -75,6 +75,23 @@ class SimplexApp(ctk.CTk):
             text_color=TEXT, width=180,
         ).pack(side="left", padx=8)
 
+        method_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        method_frame.pack(fill="x", padx=22, pady=(8, 0))
+        ctk.CTkLabel(method_frame, text="Método:", text_color=TEXT, width=70, anchor="w").pack(side="left")
+        self.method_var = ctk.StringVar(value="Simplex estándar (tabular)")
+        ctk.CTkOptionMenu(
+            method_frame,
+            values=[
+                "Auto (HiGHS)",
+                "Simplex estándar (tabular)",
+                "M Grande (tabular)",
+                "Dos Fases (tabular)",
+            ],
+            variable=self.method_var,
+            fg_color=ACCENT, button_color=ACCENT_DEEP, button_hover_color=ACCENT_HOVER,
+            text_color=TEXT, width=240,
+        ).pack(side="left", padx=8)
+
         ctk.CTkLabel(parent, text="Función objetivo   Z =", text_color=TEXT).pack(
             anchor="w", padx=22, pady=(14, 2)
         )
@@ -221,8 +238,23 @@ class SimplexApp(ctk.CTk):
             if not self.solver.constraints:
                 messagebox.showerror("Error", "Añada al menos una restricción.")
                 return
-            res = self.solver.solve_simplex()
-            self._render_result(res, method="Simplex")
+            choice = self.method_var.get()
+            method_map = {
+                "Auto (HiGHS)": None,
+                "Simplex estándar (tabular)": "simplex",
+                "M Grande (tabular)": "bigM",
+                "Dos Fases (tabular)": "twophase",
+            }
+            tab_method = method_map.get(choice)
+            if tab_method is None:
+                res = self.solver.solve_simplex()
+                self._render_result(res, method="HiGHS (linprog)")
+            else:
+                res = self.solver.solve_tabular(tab_method)
+                label = {"simplex": "Simplex estándar",
+                         "bigM": "M Grande",
+                         "twophase": "Dos Fases"}[tab_method]
+                self._render_result(res, method=label, tabular=True)
             self.tabs.set("Resultados")
         except Exception as e:
             messagebox.showerror("Error de entrada", str(e))
@@ -250,7 +282,7 @@ class SimplexApp(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Error de entrada", str(e))
 
-    def _render_result(self, res, method, verts=None, data=None):
+    def _render_result(self, res, method, verts=None, data=None, tabular=False):
         self.result_text.delete("1.0", "end")
         out = []
         out.append(f"═══════ MÉTODO {method.upper()} ═══════\n")
@@ -275,6 +307,14 @@ class SimplexApp(ctk.CTk):
                         f"   ({variables[0]}={p[0]:.4f}, {variables[1]}={p[1]:.4f})   →   Z = {zv:.4f}"
                     )
             out.append("")
+
+        if tabular and res.get("tableau_text"):
+            out.append("─── DESARROLLO PASO A PASO ───")
+            out.append(res["tableau_text"])
+            out.append("")
+            if "phase1_W" in res:
+                out.append(f"   Fase 1 finaliza con W = {res['phase1_W']:.4f}")
+                out.append("")
 
         if not res["ok"]:
             out.append(f"❌ No se encontró solución óptima.")

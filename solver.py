@@ -3,6 +3,7 @@ from itertools import combinations
 from scipy.optimize import linprog
 
 from parser import parse_expression, parse_constraint
+from simplex_tabular import solve_with_method, format_iterations
 
 
 class LPSolver:
@@ -63,6 +64,23 @@ class LPSolver:
             "z": z_val,
             "msg": res.message,
         }
+
+    def solve_tabular(self, method):
+        """Resuelve usando Simplex tabular: 'simplex' | 'bigM' | 'twophase'."""
+        data = self._build_arrays()
+        A_ub = data["A_ub"].tolist() if data["A_ub"] is not None else None
+        b_ub = data["b_ub"].tolist() if data["b_ub"] is not None else None
+        A_eq = data["A_eq"].tolist() if data["A_eq"] is not None else None
+        b_eq = data["b_eq"].tolist() if data["b_eq"] is not None else None
+        c = data["c"].tolist()
+        result = solve_with_method(
+            c, A_ub, b_ub, A_eq, b_eq, data["variables"], self.sense, method
+        )
+        style = "gauss" if method == "simplex" else "simplex"
+        result["tableau_text"] = format_iterations(
+            result.get("iterations", []), self.sense, style=style,
+        )
+        return result
 
     def vertices_2d(self):
         """Calcula los vértices factibles para problemas de 2 variables."""
