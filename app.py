@@ -50,9 +50,14 @@ class SimplexApp(ctk.CTk):
         body = ctk.CTkFrame(self, fg_color=BG_DARK, corner_radius=0)
         body.pack(fill="both", expand=True, padx=12, pady=12)
 
-        left = ctk.CTkFrame(body, fg_color=BG_PANEL, corner_radius=14, width=460)
-        left.pack(side="left", fill="y", padx=(0, 12))
-        left.pack_propagate(False)
+        left_outer = ctk.CTkFrame(body, fg_color=BG_PANEL, corner_radius=14, width=480)
+        left_outer.pack(side="left", fill="y", padx=(0, 12))
+        left_outer.pack_propagate(False)
+        left = ctk.CTkScrollableFrame(
+            left_outer, fg_color=BG_PANEL, corner_radius=0,
+            scrollbar_button_color=ACCENT, scrollbar_button_hover_color=ACCENT_HOVER,
+        )
+        left.pack(fill="both", expand=True)
         self._build_input_panel(left)
 
         right = ctk.CTkFrame(body, fg_color=BG_PANEL, corner_radius=14)
