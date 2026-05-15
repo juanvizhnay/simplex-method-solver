@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import matplotlib
 matplotlib.use("TkAgg")
 import numpy as np
@@ -7,6 +7,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from solver import LPSolver
+from exporter import export_excel, export_pdf
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -39,7 +40,7 @@ class SimplexApp(ctk.CTk):
         header.pack(fill="x")
         header.pack_propagate(False)
         ctk.CTkLabel(
-            header, text="◆  PROGRAMACIÓN LINEAL",
+            header, text="PROGRAMACIÓN LINEAL",
             font=ctk.CTkFont(size=22, weight="bold"), text_color=TEXT,
         ).pack(side="left", padx=24, pady=18)
         ctk.CTkLabel(
@@ -152,16 +153,27 @@ class SimplexApp(ctk.CTk):
 
         ctk.CTkLabel(parent, text="").pack()
         ctk.CTkButton(
-            parent, text="▶   Resolver con Simplex", height=46,
+            parent, text="Resolver con Simplex", height=46,
             font=ctk.CTkFont(size=14, weight="bold"),
             fg_color=ACCENT, hover_color=ACCENT_HOVER, text_color=TEXT,
             command=self.solve_simplex,
         ).pack(fill="x", padx=22, pady=(6, 4))
         ctk.CTkButton(
-            parent, text="📈   Resolver gráficamente", height=46,
+            parent, text="Resolver gráficamente", height=46,
             font=ctk.CTkFont(size=14, weight="bold"),
             fg_color=ACCENT_DEEP, hover_color=ACCENT, text_color=TEXT,
             command=self.solve_graphical,
+        ).pack(fill="x", padx=22, pady=4)
+
+        ctk.CTkButton(
+            parent, text="Exportar PDF", height=42,
+            fg_color="#6a1b9a", hover_color="#8e24aa", text_color=TEXT,
+            command=self.export_pdf_file,
+        ).pack(fill="x", padx=22, pady=(10, 4))
+        ctk.CTkButton(
+            parent, text="Exportar Excel", height=42,
+            fg_color="#2e7d32", hover_color="#43a047", text_color=TEXT,
+            command=self.export_excel_file,
         ).pack(fill="x", padx=22, pady=4)
 
     def _add_constraint(self, default=""):
@@ -175,7 +187,7 @@ class SimplexApp(ctk.CTk):
         if default:
             entry.insert(0, default)
         ctk.CTkButton(
-            row, text="✕", width=32, height=32,
+            row, text="X", width=32, height=32,
             fg_color=DANGER, hover_color=DANGER_HOVER, text_color=TEXT,
             command=lambda: self._remove_constraint(row, entry),
         ).pack(side="right", padx=(8, 0))
@@ -322,7 +334,7 @@ class SimplexApp(ctk.CTk):
                 out.append("")
 
         if not res["ok"]:
-            out.append(f"❌ No se encontró solución óptima.")
+            out.append("No se encontró solución óptima.")
             out.append(f"   Motivo: {res['msg']}")
         else:
             out.append("─────────  SOLUCIÓN ÓPTIMA  ─────────")
@@ -339,11 +351,11 @@ class SimplexApp(ctk.CTk):
                 diff = res["z"] - self.solver.target_z
                 out.append(f"   Diferencia  = {diff:+.4f}")
                 if self.solver.sense == "max" and self.solver.target_z > res["z"] + 1e-6:
-                    out.append("   ⚠ El Z objetivo es INALCANZABLE (mayor que el óptimo).")
+                    out.append("   El Z objetivo es INALCANZABLE (mayor que el óptimo).")
                 elif self.solver.sense == "min" and self.solver.target_z < res["z"] - 1e-6:
-                    out.append("   ⚠ El Z objetivo es INALCANZABLE (menor que el óptimo).")
+                    out.append("   El Z objetivo es INALCANZABLE (menor que el óptimo).")
                 else:
-                    out.append("   ✓ El Z objetivo es alcanzable dentro de la región factible.")
+                    out.append("   El Z objetivo es alcanzable dentro de la región factible.")
 
         self.result_text.insert("1.0", "\n".join(out))
 
@@ -428,3 +440,49 @@ class SimplexApp(ctk.CTk):
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
         self.canvas = canvas
+
+    def _ensure_solved(self):
+        text = self.result_text.get("1.0", "end").strip()
+        if not text or "SOLUCIÓN ÓPTIMA" not in text and "MÉTODO" not in text:
+            messagebox.showwarning(
+                "Exportar",
+                "Primero resuelva un problema antes de exportar el resultado.",
+            )
+            return None
+        return text
+
+    def export_pdf_file(self):
+        text = self._ensure_solved()
+        if text is None:
+            return
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("Archivo PDF", "*.pdf")],
+            initialfile="resultado_simplex.pdf",
+            title="Guardar informe PDF",
+        )
+        if not filename:
+            return
+        try:
+            export_pdf(filename, self.solver, text)
+            messagebox.showinfo("PDF", f"Informe exportado:\n{filename}")
+        except Exception as e:
+            messagebox.showerror("Error al exportar PDF", str(e))
+
+    def export_excel_file(self):
+        text = self._ensure_solved()
+        if text is None:
+            return
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Libro de Excel", "*.xlsx")],
+            initialfile="resultado_simplex.xlsx",
+            title="Guardar resultados en Excel",
+        )
+        if not filename:
+            return
+        try:
+            export_excel(filename, self.solver, text)
+            messagebox.showinfo("Excel", f"Archivo Excel exportado:\n{filename}")
+        except Exception as e:
+            messagebox.showerror("Error al exportar Excel", str(e))

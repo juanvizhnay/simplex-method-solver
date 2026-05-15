@@ -21,6 +21,7 @@ A desktop Python application with a modern interface (blue/black theme) that sol
 - Supported operators: `<=`, `>=`, `=`.
 - **"Use defined Z value"** option: compares a target Z against the optimum and
   reports whether it is reachable inside the feasible region.
+- **Export results** to PDF or Excel (`.xlsx`) from the main panel.
 
 ---
 
@@ -32,11 +33,13 @@ A desktop Python application with a modern interface (blue/black theme) that sol
   - `scipy`
   - `matplotlib`
   - `numpy`
+  - `reportlab` (PDF export)
+  - `openpyxl` (Excel export)
 
 ### Install dependencies
 
 ```bash
-pip install customtkinter scipy matplotlib numpy
+pip install customtkinter scipy matplotlib numpy reportlab openpyxl
 ```
 
 ---
@@ -61,10 +64,12 @@ python C:\path\to\simplex\main.py
 
 ```
 simplex/
-├── main.py        # Entry point
-├── app.py         # Graphical interface (CustomTkinter)
-├── solver.py      # Simplex and graphical method logic
-├── parser.py      # Expression and constraint parser
+├── main.py             # Entry point
+├── app.py              # Graphical interface (CustomTkinter)
+├── solver.py           # Simplex and graphical method logic
+├── simplex_tabular.py  # Tabular Simplex / Big M / Two-Phase implementations
+├── parser.py           # Expression and constraint parser
+├── exporter.py         # PDF / Excel export of results
 └── README.md
 ```
 
@@ -89,12 +94,23 @@ simplex/
 
 ### 2. Solve
 
-- **▶ Solve with Simplex** — accepts any number of variables. Shows the optimal
+- **Solve with Simplex** — accepts any number of variables. Shows the optimal
   values and Z in the *Results* tab.
-- **📈 Solve graphically** — requires exactly 2 variables. Plots the feasible
+- **Solve graphically** — requires exactly 2 variables. Plots the feasible
   region, vertices, and optimum in the *Graph* tab.
 
-### 3. Defined Z (optional)
+### 3. Export results
+
+After solving, the results can be exported to:
+
+- **PDF** — generates a printable report with the objective function, constraints
+  and full result text (uses `reportlab`).
+- **Excel (`.xlsx`)** — writes the same information into a spreadsheet (uses
+  `openpyxl`).
+
+A "Save as…" dialog lets you choose the destination file.
+
+### 4. Defined Z (optional)
 
 Tick the **"Use defined Z value"** checkbox and enter a Z value. The app will:
 
@@ -154,6 +170,8 @@ Subject to:
 | `scipy.optimize.linprog`  | Simplex Method (HiGHS engine)           |
 | `matplotlib`              | Graphical method rendering              |
 | `numpy`                   | Intersection and vertex computations    |
+| `reportlab`               | PDF report export                       |
+| `openpyxl`                | Excel (`.xlsx`) export                  |
 
 ---
 
